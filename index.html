@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gry w Podróży - Damian Kita</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --bg-dark: #0f172a;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+            touch-action: manipulation; /* Improves touch response */
+        }
+
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+
+        /* Animations */
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px var(--neon-blue); }
+            50% { box-shadow: 0 0 20px var(--neon-blue), 0 0 10px var(--neon-pink); }
+            100% { box-shadow: 0 0 5px var(--neon-blue); }
+        }
+
+        .game-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 243, 255, 0.3);
+        }
+
+        .btn-neon {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .btn-neon:active {
+            transform: scale(0.95);
+        }
+
+        /* Game Specific Styles */
+        .memory-card {
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .memory-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .memory-card.flipped .memory-card-inner {
+            transform: rotateY(180deg);
+        }
+        .memory-front, .memory-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .memory-front {
+            background-color: #1e293b;
+            color: var(--neon-blue);
+        }
+        .memory-back {
+            background-color: var(--neon-pink);
+            color: white;
+            transform: rotateY(180deg);
+            border: 2px solid white;
+        }
+
+        /* Tic Tac Toe */
+        .cell {
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Modal */
+        #modal-overlay {
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-slate-900 border-b border-slate-700 p-4 sticky top-0 z-50 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="pixel-font text-xs md:text-sm text-cyan-400 leading-relaxed">
+                <span class="text-pink-500">GRY</span> W PODRÓŻY
+            </h1>
+            <button id="sound-toggle" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg text-sm border border-slate-600 transition flex items-center gap-2">
+                <span>🔇</span> Dźwięk
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="app-container" class="flex-grow container mx-auto p-4 flex flex-col items-center justify-center relative">
+        
+        <!-- MENU VIEW -->
+        <div id="menu-view" class="w-full max-w-4xl animate-fade-in">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl md:text-5xl font-bold mb-2 text-white">Wybierz Grę</h2>
+                <p class="text-slate-400">Idealne na nudną podróż. Nie wymaga internetu.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Game 1 -->
+                <div onclick="gameManager.loadGame('snake')" class="game-card bg-slate-800 rounded-xl p-6 cursor-pointer border border-slate-700 hover:border-cyan-400 group">
+                    <div class="h-32 bg-slate-900 rounded-lg mb-4 flex items-center justify-center text-5xl group-hover:scale-110 transition">
+                        🐍
+                    </div>
+                    <h3 class="text-xl font-bold text-center text-cyan-300 pixel-font text-xs">WĄŻ (SNAKE)</h3>
+                    <p class="text-center text-slate-400 text-sm mt-2">Zbieraj jedzenie, nie ugryź ogona.</p>
+                </div>
+
+                <!-- Game 2 -->
+                <div onclick="gameManager.loadGame('tictactoe')" class="game-card bg-slate-800 rounded-xl p-6 cursor-pointer border border-slate-700 hover:border-pink-400 group">
+                    <div class="h-32 bg-slate-900 rounded-lg mb-4 flex items-center justify-center text-5xl group-hover:scale-110 transition">
+                        ❌⭕
+                    </div>
+                    <h3 class="text-xl font-bold text-center text-pink-300 pixel-font text-xs">KÓŁKO I KRZYŻYK</h3>
+                    <p class="text-center text-slate-400 text-sm mt-2">Klasyczna strategia. Ty vs CPU.</p>
+                </div>
+
+                <!-- Game 3 -->
+                <div onclick="gameManager.loadGame('memory')" class="game-card bg-slate-800 rounded-xl p-6 cursor-pointer border border-slate-700 hover:border-yellow-400 group">
+                    <div class="h-32 bg-slate-900 rounded-lg mb-4 flex items-center justify-center text-5xl group-hover:scale-110 transition">
+                        🎴
+                    </div>
+                    <h3 class="text-xl font-bold text-center text-yellow-300 pixel-font text-xs">PAMIĘĆ</h3>
+                    <p class="text-center text-slate-400 text-sm mt-2">Znajdź pary. Trening mózgu.</p>
+                </div>
+            </div>
+
+            <!-- Author Info in Menu -->
+            <div class="mt-12 text-center bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+                <p class="text-slate-300 mb-2">Stworzone przez:</p>
+                <h3 class="text-xl font-bold text-white mb-2">Damian Kita</h3>
+                <a href="https://linktr.ee/kitadamian" target="_blank" class="inline-block bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transition transform hover:scale-105">
+                    Odwiedź Linktree
+                </a>
+            </div>
+        </div>
+
+        <!-- GAME AREA (Hidden by default) -->
+        <div id="game-view" class="hidden w-full max-w-2xl flex flex-col items-center">
+            <div class="w-full flex justify-between items-center mb-4">
+                <button onclick="gameManager.returnToMenu()" class="text-slate-300 hover:text-white flex items-center gap-2 text-sm bg-slate-800 px-3 py-1 rounded border border-slate-600">
+                    ⬅ Menu
+                </button>
+                <h2 id="current-game-title" class="pixel-font text-cyan-400 text-xs md:text-sm">GRA</h2>
+                <div id="score-board" class="pixel-font text-yellow-400 text-xs">PKT: 0</div>
+            </div>
+
+            <!-- Game Container -->
+            <div id="active-game-container" class="w-full bg-slate-900 rounded-xl border-2 border-slate-700 p-1 relative overflow-hidden flex justify-center items-center min-h-[300px]">
+                <!-- Dynamic Game Content Goes Here -->
+            </div>
+
+            <!-- Controls (Visible only for certain games/mobile) -->
+            <div id="mobile-controls" class="hidden mt-6 grid grid-cols-3 gap-2 w-48">
+                <div></div>
+                <button ontouchstart="gameInputs.up()" onclick="gameInputs.up()" class="bg-slate-700 active:bg-cyan-600 p-4 rounded-lg shadow-lg">⬆</button>
+                <div></div>
+                <button ontouchstart="gameInputs.left()" onclick="gameInputs.left()" class="bg-slate-700 active:bg-cyan-600 p-4 rounded-lg shadow-lg">⬅</button>
+                <button ontouchstart="gameInputs.down()" onclick="gameInputs.down()" class="bg-slate-700 active:bg-cyan-600 p-4 rounded-lg shadow-lg">⬇</button>
+                <button ontouchstart="gameInputs.right()" onclick="gameInputs.right()" class="bg-slate-700 active:bg-cyan-600 p-4 rounded-lg shadow-lg">➡</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-500 text-center py-4 text-xs border-t border-slate-800">
+        &copy; 2026 Damian Kita. Działa offline.
+    </footer>
+
+    <!-- Modal for Game Over/Messages -->
+    <div id="modal-overlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60">
+        <div class="bg-slate-800 border-2 border-cyan-500 p-8 rounded-xl max-w-sm w-full text-center shadow-2xl transform transition-all scale-100">
+            <h3 id="modal-title" class="text-2xl font-bold text-white mb-2">Koniec Gry!</h3>
+            <p id="modal-message" class="text-slate-300 mb-6">Twój wynik: 100</p>
+            <button onclick="ui.closeModal()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg transition">
+                Zagraj Ponownie
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * AUDIO SYSTEM
+         * Uses Web Audio API for offline sound generation (synthesizer).
+         */
+        const audioSys = {
+            ctx: null,
+            enabled: false,
+            bgmOscillators: [],
+            
+            init: function() {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            },
+
+            toggle: function() {
+                if (!this.ctx) this.init();
+                
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+
+                this.enabled = !this.enabled;
+                const btn = document.getElementById('sound-toggle');
+                
+                if (this.enabled) {
+                    btn.innerHTML = '<span>🔊</span> Dźwięk';
+                    btn.classList.replace('bg-slate-800', 'bg-cyan-700');
+                    this.playBGM();
+                } else {
+                    btn.innerHTML = '<span>🔇</span> Dźwięk';
+                    btn.classList.replace('bg-cyan-700', 'bg-slate-800');
+                    this.stopBGM();
+                }
+            },
+
+            playTone: function(freq, type, duration, vol = 0.1) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+
+            sfx: {
+                click: () => audioSys.playTone(400, 'sine', 0.1, 0.1),
+                win: () => {
+                    audioSys.playTone(523.25, 'square', 0.1, 0.1); // C5
+                    setTimeout(() => audioSys.playTone(659.25, 'square', 0.1, 0.1), 100); // E5
+                    setTimeout(() => audioSys.playTone(783.99, 'square', 0.3, 0.1), 200); // G5
+                },
+                lose: () => {
+                    audioSys.playTone(300, 'sawtooth', 0.3, 0.1);
+                    setTimeout(() => audioSys.playTone(200, 'sawtooth', 0.5, 0.1), 200);
+                },
+                eat: () => audioSys.playTone(600, 'triangle', 0.1, 0.1)
+            },
+
+            playBGM: function() {
+                // Simple ambient drone generator
+                if(!this.enabled) return;
+                this.stopBGM();
+
+                const frequencies = [110, 164.81]; // A2, E3
+                frequencies.forEach(f => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = f;
+                    gain.gain.value = 0.02; // Very quiet
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    this.bgmOscillators.push({osc, gain});
+                });
+            },
+
+            stopBGM: function() {
+                this.bgmOscillators.forEach(node => {
+                    try {
+                        node.gain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.5);
+                        setTimeout(() => node.osc.stop(), 600);
+                    } catch(e){}
+                });
+                this.bgmOscillators = [];
+            }
+        };
+
+        document.getElementById('sound-toggle').addEventListener('click', () => audioSys.toggle());
+
+        /**
+         * GAME INPUTS MANAGER
+         */
+        const gameInputs = {
+            currentHandler: null,
+            up: () => gameInputs.currentHandler && gameInputs.currentHandler('UP'),
+            down: () => gameInputs.currentHandler && gameInputs.currentHandler('DOWN'),
+            left: () => gameInputs.currentHandler && gameInputs.currentHandler('LEFT'),
+            right: () => gameInputs.currentHandler && gameInputs.currentHandler('RIGHT'),
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if(!gameInputs.currentHandler) return;
+            switch(e.key) {
+                case 'ArrowUp': gameInputs.up(); break;
+                case 'ArrowDown': gameInputs.down(); break;
+                case 'ArrowLeft': gameInputs.left(); break;
+                case 'ArrowRight': gameInputs.right(); break;
+            }
+        });
+
+        /**
+         * UI MANAGER
+         */
+        const ui = {
+            menuView: document.getElementById('menu-view'),
+            gameView: document.getElementById('game-view'),
+            container: document.getElementById('active-game-container'),
+            modal: document.getElementById('modal-overlay'),
+            title: document.getElementById('current-game-title'),
+            score: document.getElementById('score-board'),
+            mobileControls: document.getElementById('mobile-controls'),
+            onModalClose: null,
+
+            showGame: (title) => {
+                ui.menuView.classList.add('hidden');
+                ui.gameView.classList.remove('hidden');
+                ui.title.innerText = title;
+                ui.score.innerText = "PKT: 0";
+                ui.container.innerHTML = ''; // Clear previous
+            },
+
+            showMenu: () => {
+                ui.gameView.classList.add('hidden');
+                ui.menuView.classList.remove('hidden');
+                ui.mobileControls.classList.add('hidden');
+            },
+
+            showModal: (title, msg, callback) => {
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-message').innerText = msg;
+                ui.modal.classList.remove('hidden');
+                ui.onModalClose = callback;
+                audioSys.sfx.lose();
+            },
+
+            closeModal: () => {
+                ui.modal.classList.add('hidden');
+                if (ui.onModalClose) ui.onModalClose();
+            },
+
+            updateScore: (val) => {
+                ui.score.innerText = `PKT: ${val}`;
+            }
+        };
+
+        /**
+         * GAME LOGIC: SNAKE
+         */
+        const SnakeGame = {
+            interval: null,
+            init: () => {
+                ui.mobileControls.classList.remove('hidden'); // Show D-pad
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 300;
+                canvas.className = 'bg-black border border-slate-700 shadow-inner';
+                ui.container.appendChild(canvas);
+                
+                const ctx = canvas.getContext('2d');
+                const gridSize = 15;
+                let snake = [{x: 10, y: 10}];
+                let food = {x: 15, y: 15};
+                let dx = 0;
+                let dy = 0;
+                let score = 0;
+                let started = false;
+
+                function draw() {
+                    // Clear
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Food
+                    ctx.fillStyle = '#ff00ff';
+                    ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+
+                    // Snake
+                    ctx.fillStyle = '#00f3ff';
+                    snake.forEach((part, index) => {
+                        ctx.fillStyle = index === 0 ? '#ffffff' : '#00f3ff'; // Head is white
+                        ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+                    });
+                }
+
+                function move() {
+                    if (!started) return;
+                    
+                    const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+                    // Wall collision
+                    if (head.x < 0 || head.x >= canvas.width/gridSize || head.y < 0 || head.y >= canvas.height/gridSize) {
+                        return gameOver();
+                    }
+
+                    // Self collision
+                    for (let part of snake) {
+                        if (part.x === head.x && part.y === head.y) return gameOver();
+                    }
+
+                    snake.unshift(head);
+
+                    // Eat food
+                    if (head.x === food.x && head.y === food.y) {
+                        score += 10;
+                        ui.updateScore(score);
+                        audioSys.sfx.eat();
+                        food = {
+                            x: Math.floor(Math.random() * (canvas.width/gridSize)),
+                            y: Math.floor(Math.random() * (canvas.height/gridSize))
+                        };
+                    } else {
+                        snake.pop();
+                    }
+                    draw();
+                }
+
+                function gameOver() {
+                    clearInterval(SnakeGame.interval);
+                    ui.showModal("Koniec Gry", `Wynik: ${score}`, SnakeGame.init);
+                }
+
+                draw(); // Initial draw
+
+                // Input handling
+                gameInputs.currentHandler = (dir) => {
+                    if (!started) { started = true; SnakeGame.interval = setInterval(move, 100); }
+                    if (dir === 'UP' && dy === 0) { dx = 0; dy = -1; }
+                    if (dir === 'DOWN' && dy === 0) { dx = 0; dy = 1; }
+                    if (dir === 'LEFT' && dx === 0) { dx = -1; dy = 0; }
+                    if (dir === 'RIGHT' && dx === 0) { dx = 1; dy = 0; }
+                };
+            },
+            stop: () => {
+                clearInterval(SnakeGame.interval);
+                gameInputs.currentHandler = null;
+            }
+        };
+
+        /**
+         * GAME LOGIC: TIC TAC TOE
+         */
+        const TicTacToe = {
+            board: [],
+            gameOver: false,
+            init: () => {
+                ui.mobileControls.classList.add('hidden');
+                ui.container.innerHTML = '';
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-3 gap-2 w-[300px] h-[300px]';
+                ui.container.appendChild(grid);
+
+                TicTacToe.board = Array(9).fill(null);
+                TicTacToe.gameOver = false;
+                
+                // Create Cells
+                for(let i=0; i<9; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell rounded-lg bg-slate-800 border border-slate-600 text-white font-bold';
+                    cell.onclick = () => TicTacToe.move(i, cell);
+                    cell.id = `ttt-${i}`;
+                    grid.appendChild(cell);
+                }
+            },
+            
+            move: (index, el) => {
+                if(TicTacToe.board[index] || TicTacToe.gameOver) return;
+                
+                // Player Move
+                TicTacToe.board[index] = 'X';
+                el.innerText = 'X';
+                el.style.color = 'var(--neon-blue)';
+                audioSys.sfx.click();
+
+                if(TicTacToe.checkWin('X')) {
+                    TicTacToe.end(true);
+                    return;
+                }
+                if(!TicTacToe.board.includes(null)) {
+                    TicTacToe.end(null); // Draw
+                    return;
+                }
+
+                // AI Move (Random)
+                setTimeout(() => {
+                    if(TicTacToe.gameOver) return;
+                    let empty = TicTacToe.board.map((v, i) => v === null ? i : null).filter(v => v !== null);
+                    let aiMove = empty[Math.floor(Math.random() * empty.length)];
+                    TicTacToe.board[aiMove] = 'O';
+                    let aiEl = document.getElementById(`ttt-${aiMove}`);
+                    aiEl.innerText = 'O';
+                    aiEl.style.color = 'var(--neon-pink)';
+                    
+                    if(TicTacToe.checkWin('O')) TicTacToe.end(false);
+                }, 500);
+            },
+
+            checkWin: (player) => {
+                const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+                return wins.some(combo => combo.every(i => TicTacToe.board[i] === player));
+            },
+
+            end: (playerWon) => {
+                TicTacToe.gameOver = true;
+                if(playerWon === true) {
+                    audioSys.sfx.win();
+                    setTimeout(() => ui.showModal("Wygrałeś!", "Gratulacje!", TicTacToe.init), 500);
+                } else if (playerWon === false) {
+                    setTimeout(() => ui.showModal("Przegrałeś", "Komputer był lepszy.", TicTacToe.init), 500);
+                } else {
+                    setTimeout(() => ui.showModal("Remis", "Spróbuj jeszcze raz.", TicTacToe.init), 500);
+                }
+            },
+            stop: () => {}
+        };
+
+        /**
+         * GAME LOGIC: MEMORY
+         */
+        const MemoryGame = {
+            timer: null,
+            init: () => {
+                ui.mobileControls.classList.add('hidden');
+                ui.container.innerHTML = '';
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-4 gap-2 w-[300px] h-[300px]';
+                ui.container.appendChild(grid);
+
+                const icons = ['🚀', '🍕', '🎮', '🐱', '🌵', '💎', '🎸', '🍦'];
+                const deck = [...icons, ...icons].sort(() => 0.5 - Math.random());
+                
+                let flipped = [];
+                let matched = 0;
+                let lock = false;
+
+                deck.forEach((icon) => {
+                    const card = document.createElement('div');
+                    card.className = 'memory-card w-full h-full';
+                    card.innerHTML = `
+                        <div class="memory-card-inner">
+                            <div class="memory-front">?</div>
+                            <div class="memory-back">${icon}</div>
+                        </div>
+                    `;
+                    
+                    card.onclick = () => {
+                        if(lock || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+                        
+                        card.classList.add('flipped');
+                        audioSys.sfx.click();
+                        flipped.push({card, icon});
+
+                        if(flipped.length === 2) {
+                            lock = true;
+                            if(flipped[0].icon === flipped[1].icon) {
+                                // Match
+                                audioSys.sfx.eat(); // Reuse pleasant sound
+                                flipped[0].card.classList.add('matched');
+                                flipped[1].card.classList.add('matched');
+                                matched++;
+                                flipped = [];
+                                lock = false;
+                                if(matched === icons.length) {
+                                    audioSys.sfx.win();
+                                    setTimeout(() => ui.showModal("Zwycięstwo!", "Mistrz Pamięci!", MemoryGame.init), 500);
+                                }
+                            } else {
+                                // No Match
+                                setTimeout(() => {
+                                    flipped[0].card.classList.remove('flipped');
+                                    flipped[1].card.classList.remove('flipped');
+                                    flipped = [];
+                                    lock = false;
+                                }, 1000);
+                            }
+                        }
+                    };
+                    grid.appendChild(card);
+                });
+            },
+            stop: () => {}
+        };
+
+        /**
+         * MAIN MANAGER
+         */
+        const gameManager = {
+            currentGame: null,
+            
+            loadGame: (gameId) => {
+                if(gameManager.currentGame) gameManager.currentGame.stop();
+                
+                ui.showGame(gameId.toUpperCase());
+                
+                switch(gameId) {
+                    case 'snake':
+                        gameManager.currentGame = SnakeGame;
+                        break;
+                    case 'tictactoe':
+                        gameManager.currentGame = TicTacToe;
+                        break;
+                    case 'memory':
+                        gameManager.currentGame = MemoryGame;
+                        break;
+                }
+                
+                gameManager.currentGame.init();
+            },
+
+            returnToMenu: () => {
+                if(gameManager.currentGame) gameManager.currentGame.stop();
+                ui.showMenu();
+            }
+        };
+
+    </script>
+</body>
+</html>
